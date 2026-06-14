@@ -1,0 +1,9 @@
+pandas
+pydantic
+sqlalchemy
+pymysql
+fastapi
+uvicorn
+streamlit
+python-dotenv
+openpyxl

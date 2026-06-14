@@ -1,0 +1,40 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: fin_mysql_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: financial_data
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  api:
+    build: .
+    container_name: fin_api
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+      - DB_NAME=financial_data
+    depends_on:
+      - db
+    command: uvicorn src.web.backend.main:app --host 0.0.0.0 --port 8000
+
+  dashboard:
+    build: .
+    container_name: fin_dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+      - DB_NAME=financial_data
+    depends_on:
+      - db
+    command: streamlit run src.web.frontend.app.py --server.port 8501 --server.address 0.0.0.0
