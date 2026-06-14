@@ -5,3 +5,8 @@ __pycache__/
 data/processed/*.csv
 data/raw/*.zip
 .DS_Store
+data/raw/*
+!data/raw/.gitkeep
+
+data/processed/*
+!data/processed/.gitkeep
