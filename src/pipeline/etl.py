@@ -1,19 +1,10 @@
 import pandas as pd
-from pydantic import BaseModel, Field, validator, ValidationError
-from datetime import datetime
-from typing import Optional, List, Tuple
+from pydantic import ValidationError
 from sqlalchemy import create_engine, text
+from pathlib import Path
 import os
 
-class TransactionModel(BaseModel):
-    InvoiceNo: str
-    StockCode: str
-    Description: Optional[str] = None
-    Quantity: int = Field(..., gt=0)
-    InvoiceDate: datetime
-    UnitPrice: float = Field(..., gt=0)
-    CustomerID: str
-    Country: str
+from validators import TransactionModel
 
 def validate_row(row):
     try:
@@ -27,11 +18,28 @@ def validate_row(row):
 
 def run_etl():
     print("Starting ETL Process...")
-    # Read directly from Excel to avoid separate conversion script
-    input_file = '/home/biswa/fin-data-pipeline/data/raw/Online Retail.xlsx'
-    print(f"Reading data from {input_file}...")
-    df = pd.read_excel(input_file)
-    
+    project_root = Path(__file__).resolve().parents[2]
+    raw_dir = project_root / "data" / "raw"
+    processed_dir = project_root / "data" / "processed"
+    processed_dir.mkdir(parents=True, exist_ok=True)
+
+    excel_file = raw_dir / "Online Retail.xlsx"
+    csv_file = raw_dir / "online_retail.csv"
+
+    if excel_file.exists():
+        input_file = excel_file
+        print(f"Reading Excel data from {input_file}...")
+        df = pd.read_excel(input_file)
+    elif csv_file.exists():
+        input_file = csv_file
+        print(f"Reading CSV data from {input_file}...")
+        df = pd.read_csv(input_file)
+    else:
+        raise FileNotFoundError(
+            f"Could not find input data file in {raw_dir}. "
+            "Expected one of: 'Online Retail.xlsx', 'online_retail.csv'."
+        )
+
     df['InvoiceDate'] = pd.to_datetime(df['InvoiceDate'])
     df['StockCode'] = df['StockCode'].astype(str).str.upper()
     df['CustomerID'] = df['CustomerID'].astype(str).str.upper()
@@ -52,15 +60,20 @@ def run_etl():
     clean_df = pd.DataFrame(good_records)
     clean_df['total_amount'] = clean_df['Quantity'] * clean_df['UnitPrice']
     
-    engine = create_engine('mysql+pymysql://root:rootpassword@localhost:3307/financial_data')
+    DB_HOST = os.getenv("DB_HOST", "localhost")
+    DB_PORT = os.getenv("DB_PORT", "3307")
+    DB_USER = os.getenv("DB_USER", "root")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "rootpassword")
+    DB_NAME = os.getenv("DB_NAME", "financial_data")
     
-    with engine.connect() as conn:
+    engine = create_engine(f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
+    
+    with engine.begin() as conn:
         conn.execute(text("SET FOREIGN_KEY_CHECKS = 0;"))
         conn.execute(text("TRUNCATE TABLE fact_transactions;"))
         conn.execute(text("TRUNCATE TABLE dim_customers;"))
         conn.execute(text("TRUNCATE TABLE dim_products;"))
         conn.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
-        conn.commit()
     print("Tables truncated for fresh load.")
     
     customers = clean_df[['CustomerID', 'Country']].drop_duplicates('CustomerID')
@@ -89,8 +102,9 @@ def run_etl():
     print("Loaded fact_transactions.")
     
     bad_df = pd.DataFrame(bad_records)
-    bad_df.to_csv('/home/biswa/fin-data-pipeline/data/processed/bad_records.csv', index=False)
-    print("Bad records saved to data/processed/bad_records.csv")
+    bad_path = processed_dir / 'bad_records.csv'
+    bad_df.to_csv(bad_path, index=False)
+    print(f"Bad records saved to {bad_path}")
 
 if __name__ == "__main__":
     run_etl()

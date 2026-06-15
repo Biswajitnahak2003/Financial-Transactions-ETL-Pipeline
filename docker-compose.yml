@@ -18,6 +18,7 @@ services:
       - "8000:8000"
     environment:
       - DB_HOST=db
+      - DB_PORT=3306
       - DB_USER=root
       - DB_PASSWORD=rootpassword
       - DB_NAME=financial_data
@@ -31,10 +32,7 @@ services:
     ports:
       - "8501:8501"
     environment:
-      - DB_HOST=db
-      - DB_USER=root
-      - DB_PASSWORD=rootpassword
-      - DB_NAME=financial_data
+      - API_BASE_URL=http://api:8000
     depends_on:
-      - db
-    command: streamlit run src.web.frontend.app.py --server.port 8501 --server.address 0.0.0.0
+      - api
+    command: streamlit run src/web/frontend/app.py --server.port 8501 --server.address 0.0.0.0

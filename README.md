@@ -14,6 +14,24 @@ The goal of this project is to build a production-ready ETL pipeline that ingest
 
 ---
 
+## 📊 Pipeline Metrics
+
+| Metric | Value |
+|--------|-------|
+| Total Records Processed | 530,104 |
+| Valid Records Loaded | 530,104 |
+| Invalid Records Rejected | 0 |
+| Data Quality | 100.0% |
+| Total Revenue | $10,666,684.54 |
+| Total Customers | 4,339 |
+| Total Products | 3,812 |
+| Average Order Value | $20.12 |
+| Total Items Sold | 5,588,376 |
+
+*Metrics from the UCI Online Retail dataset (2010-2011)*
+
+---
+
 ## 🏗️ Architecture
 `Raw Data (XLSX)` $\rightarrow$ `Pandas Ingestion` $\rightarrow$ `Pydantic Validation` $\rightarrow$ `MySQL (Star Schema)` $\rightarrow$ `FastAPI` $\rightarrow$ `Streamlit Dashboard`
 
@@ -58,9 +76,10 @@ The goal of this project is to build a production-ready ETL pipeline that ingest
    source .venv/bin/activate
    pip install -r requirements.txt
    
-   # Execute the pipeline
-   python src/pipeline/etl.py
-   ```
+    # Execute the pipeline
+    cd src/pipeline
+    python etl.py
+    ```
 
 4. **Access the Application:**
    - **API Documentation:** [http://localhost:8000/docs](http://localhost:8000/docs)
